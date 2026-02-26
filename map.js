@@ -380,7 +380,11 @@ function _moDrawRoute(optimize) {
     google.script.run
         .withSuccessHandler(function (data) {
             btn.disabled = false;
-            if (!data || data.error) { alert2('API 오류: ' + (data ? data.error : '알 수 없는 오류') + '. 직선 동선으로 대체합니다.', 'error'); _moDrawStraight(); return; }
+            if (!data || data.error) {
+                if (typeof alert2 === 'function') { alert2('API 오류: ' + (data ? data.error : '알 수 없는 오류') + '. 직선 동선으로 대체합니다.', 'error'); }
+                else { alert('API 오류: ' + (data ? data.error : '알 수 없는 오류') + '. 직선 동선으로 대체합니다.'); }
+                _moDrawStraight(); return;
+            }
             var routes = data.routes;
             if (!routes || !routes[0] || routes[0].result_code !== 0) { _moDrawStraight(); return; }
             if (data.optimizedWaypoints) {
