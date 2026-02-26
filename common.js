@@ -465,7 +465,7 @@ function _cleanAddrClient(raw) {
 
 function _copyAddr(idx) {
     var text = _addrStore[idx]; if (!text) return;
-    if (navigator.clipboard) { navigator.clipboard.writeText(text).then(() => alert2('주소 복사됨')).catch(() => _copyAddrFallback(text)); }
+    if (navigator.clipboard) { navigator.clipboard.writeText(text).then(function () { alert2('주소 복사됨'); }).catch(function () { _copyAddrFallback(text); }); }
     else _copyAddrFallback(text);
 }
 
