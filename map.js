@@ -1,5 +1,5 @@
 /* ============================================================
-   map.js — 지도 및 동선 관리 로직 (CDN/ES5 버전)
+   map.js — 지도 및 동선 관리 로직 (CDN/ES5 버전 - 안정성 강화)
    ============================================================ */
 
 function _makeMapBtn(date, orders) {
@@ -52,8 +52,10 @@ function openMap(date, addrList) {
     if (_mapBusy) return;
     var cached = _moGeoCacheGet(date);
     if (cached) {
-        document.getElementById('moSubtitle').textContent = date + ' 배송 동선';
-        document.getElementById('mapOv').classList.add('show');
+        var sub = document.getElementById('moSubtitle');
+        if (sub) sub.textContent = date + ' 배송 동선';
+        var ov = document.getElementById('mapOv');
+        if (ov) ov.classList.add('show');
         _moLoadKakaoThenInit(cached);
         return;
     }
@@ -71,8 +73,10 @@ function openMap(date, addrList) {
                 btns[j].textContent = '🗺️ 지도보기';
             }
             _moGeoCacheSet(date, res);
-            document.getElementById('moSubtitle').textContent = date + ' 배송 동선';
-            document.getElementById('mapOv').classList.add('show');
+            var sub = document.getElementById('moSubtitle');
+            if (sub) sub.textContent = date + ' 배송 동선';
+            var ov = document.getElementById('mapOv');
+            if (ov) ov.classList.add('show');
             _moLoadKakaoThenInit(res || []);
         })
         .withFailureHandler(function () {
@@ -81,26 +85,33 @@ function openMap(date, addrList) {
                 btns[k].disabled = false;
                 btns[k].textContent = '🗺️ 지도보기';
             }
+            alert2('주소 변환에 실패했습니다.', 'error');
         })
         .geocodeAddresses(addrList);
 }
 
 function closeMapOv() {
-    document.getElementById('mapOv').classList.remove('show');
+    var ov = document.getElementById('mapOv');
+    if (ov) ov.classList.remove('show');
     document.body.style.overflow = '';
     _moRouteActive = false;
     _moRouteClear();
-    for (var i = 0; i < _moMarkerOvs.length; i++) { _moMarkerOvs[i].setMap(null); }
+    for (var i = 0; i < _moMarkerOvs.length; i++) { if (_moMarkerOvs[i]) _moMarkerOvs[i].setMap(null); }
     _moMarkerOvs = [];
-    for (var j = 0; j < _moInfoOvs.length; j++) { _moInfoOvs[j].setMap(null); }
+    for (var j = 0; j < _moInfoOvs.length; j++) { if (_moInfoOvs[j]) _moInfoOvs[j].setMap(null); }
     _moInfoOvs = [];
     if (_moOriginMarkerOv) _moOriginMarkerOv.setMap(null);
     _moMap = null;
-    document.getElementById('moAddrListScroll').innerHTML = '';
+    var scroll = document.getElementById('moAddrListScroll');
+    if (scroll) scroll.innerHTML = '';
 }
 
 function _moLoadKakaoThenInit(results) {
-    if (_moKakaoLoaded) { _moInitMap(results); return; }
+    if (_moKakaoLoaded && window.kakao && window.kakao.maps) { _moInitMap(results); return; }
+    if (typeof MO_KAKAO_JS_KEY === 'undefined' || !MO_KAKAO_JS_KEY) {
+        alert2('카카오 지도 키가 설정되지 않았습니다.', 'error');
+        return;
+    }
     var sc = document.createElement('script');
     sc.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + MO_KAKAO_JS_KEY + '&libraries=services&autoload=false';
     sc.onload = function () {
@@ -109,12 +120,23 @@ function _moLoadKakaoThenInit(results) {
             _moInitMap(results);
         });
     };
+    sc.onerror = function () {
+        alert2('카카오 지도 SDK 로드에 실패했습니다.', 'error');
+    };
     document.head.appendChild(sc);
 }
 
 function _moInitMap(results) {
-    _moOkList = results.filter(function (r) { return r.ok; });
-    document.getElementById('moMapArea').innerHTML = '<div id="moMap" style="width:100%;height:100%"></div>';
+    results = results || [];
+    _moOkList = results.filter(function (r) { return r && r.ok; });
+    var area = document.getElementById('moMapArea');
+    if (area) area.innerHTML = '<div id="moMap" style="width:100%;height:100%"></div>';
+
+    if (typeof MO_ORIGIN === 'undefined' || !MO_ORIGIN.lat) {
+        alert2('출발지 정보가 올바르지 않습니다.', 'error');
+        return;
+    }
+
     _moMap = new kakao.maps.Map(document.getElementById('moMap'), {
         center: new kakao.maps.LatLng(MO_ORIGIN.lat, MO_ORIGIN.lng),
         level: 7
@@ -134,6 +156,7 @@ function _moInitMap(results) {
     _moMarkerOvs = [];
     for (var i = 0; i < _moOkList.length; i++) {
         var r = _moOkList[i];
+        if (!r.lat || !r.lng) continue;
         var pos = new kakao.maps.LatLng(r.lat, r.lng);
         bounds.extend(pos);
         var mEl = document.createElement('div');
@@ -144,11 +167,17 @@ function _moInitMap(results) {
         _moMarkerOvs.push(mOv);
     }
 
-    _moMap.setBounds(bounds);
+    if (_moOkList.length > 0) {
+        _moMap.setBounds(bounds);
+    } else {
+        _moMap.setCenter(new kakao.maps.LatLng(MO_ORIGIN.lat, MO_ORIGIN.lng));
+    }
+
     _moInitLayout();
     _moRebuildList();
-    if (_moOkList.length >= 1) {
-        document.getElementById('moRouteBtn').style.display = 'inline-block';
+    var rb = document.getElementById('moRouteBtn');
+    if (rb) {
+        rb.style.display = _moOkList.length >= 1 ? 'inline-block' : 'none';
     }
 }
 
@@ -160,62 +189,86 @@ function moToggleRoute() {
 function _moRouteClear() {
     _moRouteActive = false;
     for (var i = 0; i < _moRoutePolylines.length; i++) {
-        _moRoutePolylines[i].setMap(null);
+        if (_moRoutePolylines[i]) _moRoutePolylines[i].setMap(null);
     }
     _moRoutePolylines = [];
-    document.getElementById('moRouteBtn').textContent = '🚚 도로 동선';
-    document.getElementById('moRouteBtn').classList.remove('active');
-    document.getElementById('moRouteInfo').classList.remove('show');
+    var btn = document.getElementById('moRouteBtn');
+    if (btn) {
+        btn.textContent = '🚚 도로 동선';
+        btn.classList.remove('active');
+    }
+    var info = document.getElementById('moRouteInfo');
+    if (info) info.classList.remove('show');
     _moRefreshMarkers();
     _moRebuildList();
 }
 
 function _moDrawRoute(optimize) {
     var btn = document.getElementById('moRouteBtn');
+    if (!btn) return;
+
+    var pts = _moCustomOrder.map(function (i) { return _moOkList[i]; });
+    if (!pts || pts.length === 0) {
+        alert2('배송지가 존재하지 않습니다.', 'error');
+        return;
+    }
+
     btn.disabled = true;
     btn.textContent = '⏳ 계산 중...';
-    var pts = _moCustomOrder.map(function (i) { return _moOkList[i]; });
 
     google.script.run
         .withSuccessHandler(function (res) {
             btn.disabled = false;
-            if (!res || res.error) { alert2('경로 조회 실패'); _moRouteClear(); return; }
+            if (!res || res.error || !res.sections) {
+                alert2('경로 정보를 가져오지 못했습니다.', 'error');
+                _moRouteClear();
+                return;
+            }
             _moRouteActive = true;
             btn.textContent = '✕ 동선 숨기기';
             btn.classList.add('active');
 
             for (var i = 0; i < _moRoutePolylines.length; i++) {
-                _moRoutePolylines[i].setMap(null);
+                if (_moRoutePolylines[i]) _moRoutePolylines[i].setMap(null);
             }
             _moRoutePolylines = [];
+
             var path = [];
             for (var j = 0; j < res.sections.length; j++) {
                 var s = res.sections[j];
+                if (!s || !s.roads) continue;
                 for (var k = 0; k < s.roads.length; k++) {
                     var r = s.roads[k];
+                    if (!r || !r.vertexes) continue;
                     for (var m = 0; m < r.vertexes.length; m += 2) {
                         path.push(new kakao.maps.LatLng(r.vertexes[m + 1], r.vertexes[m]));
                     }
                 }
             }
-            var poly = new kakao.maps.Polyline({
-                path: path,
-                strokeWeight: 5,
-                strokeColor: '#0EA5E9',
-                strokeOpacity: 0.8
-            });
-            poly.setMap(_moMap);
-            _moRoutePolylines.push(poly);
 
-            var km = (res.summary.distance / 1000).toFixed(1);
-            document.getElementById('moRouteInfo').textContent = '🚚 도로 동선 - 약 ' + km + 'km';
-            document.getElementById('moRouteInfo').classList.add('show');
+            if (path.length > 0) {
+                var poly = new kakao.maps.Polyline({
+                    path: path,
+                    strokeWeight: 5,
+                    strokeColor: '#F59E0B',
+                    strokeOpacity: 0.85
+                });
+                poly.setMap(_moMap);
+                _moRoutePolylines.push(poly);
+            }
+
+            var km = (res.summary && res.summary.distance) ? (res.summary.distance / 1000).toFixed(1) : '0';
+            var info = document.getElementById('moRouteInfo');
+            if (info) {
+                info.textContent = '🚚 도로 동선 - 약 ' + km + 'km';
+                info.classList.add('show');
+            }
             _moRefreshMarkers();
             _moRebuildList();
         })
-        .withFailureHandler(function () {
+        .withFailureHandler(function (err) {
             btn.disabled = false;
-            alert2('통신 오류');
+            alert2('통신 오류: ' + (err.message || ''), 'error');
         })
         .getRouteData({
             originLat: MO_ORIGIN.lat,
@@ -253,6 +306,7 @@ function moResetOrder() {
 function _moRefreshMarkers() {
     for (var i = 0; i < _moMarkerOvs.length; i++) {
         var ov = _moMarkerOvs[i];
+        if (!ov) continue;
         var seq = _moCustomOrder.indexOf(i);
         var el = ov.getContent();
         if (el) {
@@ -270,6 +324,7 @@ function _moRebuildList() {
         var idx = _moCustomOrder[i];
         var seq = i;
         var r = _moOkList[idx];
+        if (!r) continue;
         html += '<div class="mo-addr-item" data-idx="' + idx + '" data-seq="' + seq + '">' +
             (_moSortMode ? '<div class="mo-item-grab">☰</div>' : '') +
             '<div class="mo-addr-num ' + (_moRouteActive ? 'num-amber' : 'num-green') + '">' + (seq + 1) + '</div>' +
@@ -290,8 +345,14 @@ function _moSetPanelH(r) {
     var layout = document.getElementById('moLayout');
     if (!layout) return;
     var h = layout.getBoundingClientRect().height;
+    if (h <= 0) h = window.innerHeight - 60; // 안전장치
+
     var panel = document.getElementById('moBottomPanel');
     if (panel) panel.style.height = (h * r) + 'px';
+
+    var area = document.getElementById('moMapArea');
+    if (area) area.style.height = (h * (1 - r)) + 'px';
+
     if (_moMap) {
         setTimeout(function () {
             kakao.maps.event.trigger(_moMap, 'resize');
@@ -310,9 +371,10 @@ function moTogglePanelExpand() {
 (function () {
     var setup = function () {
         var h = document.getElementById('moDragHandle');
-        if (!h) { setTimeout(setup, 100); return; }
+        if (!h) { setTimeout(setup, 200); return; }
         var sy, sh, dragging = false;
         var panel = document.getElementById('moBottomPanel');
+        var area = document.getElementById('moMapArea');
         var layout = document.getElementById('moLayout');
 
         function start(e) {
@@ -320,6 +382,7 @@ function moTogglePanelExpand() {
             sy = e.touches ? e.touches[0].clientY : e.clientY;
             sh = panel.getBoundingClientRect().height;
             panel.style.transition = 'none';
+            area.style.transition = 'none';
             document.addEventListener('mousemove', move);
             document.addEventListener('mouseup', end);
             document.addEventListener('touchmove', move, { passive: false });
@@ -333,12 +396,14 @@ function moTogglePanelExpand() {
             var lh = layout.getBoundingClientRect().height;
             if (nh < 40) nh = 40; if (nh > lh - 60) nh = lh - 60;
             panel.style.height = nh + 'px';
+            area.style.height = (lh - nh) + 'px';
             if (e.cancelable) e.preventDefault();
         }
         function end() {
             if (!dragging) return;
             dragging = false;
             panel.style.transition = 'height .2s ease';
+            area.style.transition = 'height .2s ease';
             document.removeEventListener('mousemove', move);
             document.removeEventListener('mouseup', end);
             document.removeEventListener('touchmove', move);
@@ -351,4 +416,5 @@ function moTogglePanelExpand() {
     if (document.readyState === 'complete') setup();
     else window.addEventListener('load', setup);
 })();
+
 
