@@ -130,11 +130,21 @@ function _sendLargeData(data, successCb, serverFunctionName, retryCount) {
     sendNext(0);
 }
 
-function _getLocalSession() { return null; }
+function _getLocalSession() {
+    try {
+        var raw = localStorage.getItem('_appSess');
+        if (!raw) return null;
+        var d = JSON.parse(raw);
+        if (d && d.token && d.expiresAt && Date.now() < d.expiresAt) return d;
+        _clearLocalSession(); return null;
+    } catch (e) { return null; }
+}
 function _clearLocalSession() { try { localStorage.removeItem('_appSess'); } catch (e) { } }
 function _getToken() {
     var t = sessionStorage.getItem('session_token');
     if (t) return t;
+    var ls = _getLocalSession();
+    if (ls) return ls.token;
     return (typeof S !== 'undefined' && S.token) ? S.token : '';
 }
 
@@ -163,6 +173,7 @@ document.addEventListener('DOMContentLoaded', _startSessionHeartbeat);
 
 function _redirect(url) {
     if (!url) return;
+    // 1순위: form[method=get, target=_top] submit — GAS 샌드박스에서 가장 안정적
     try {
         var f = document.createElement('form');
         f.method = 'get';
@@ -185,8 +196,24 @@ function _redirect(url) {
         f.submit();
         setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 500);
         return;
-    } catch (e) { console.error('_redirect error:', e); }
-    try { window.top.location.href = url; } catch (e) { window.location.href = url; }
+    } catch (e) { console.error('_redirect step 1 (form) error:', e); }
+
+    // 2순위: a[target=_top] 클릭
+    try {
+        var a = document.createElement('a');
+        a.href = url;
+        a.target = '_top';
+        a.rel = 'noopener';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { if (a.parentNode) a.parentNode.removeChild(a); }, 500);
+        return;
+    } catch (e) { console.error('_redirect step 2 (a.click) error:', e); }
+
+    // 3순위: window.top.location
+    try { window.top.location.href = url; return; } catch (e) { }
+    try { window.location.href = url; } catch (e) { console.error('_redirect all attempts failed:', e); }
 }
 
 function _navTo(path) { _getAppUrl(function (u) { _redirect(u + path); }); }
@@ -225,6 +252,31 @@ window.addEventListener('pageshow', function (e) {
 document.addEventListener('touchstart', function () { }, { passive: true });
 document.addEventListener('touchmove', function () { }, { passive: true });
 
+function showAlert(m, t) { alert2(m, t); }
+
+/* ── 인증 타이머 ── */
+function _startCountdown(st, type) {
+    _stopCountdown(st, type);
+    var badgeId = type + 'TimerBadge', textId = type + 'TimerText', expAt = st[type + 'ExpireAt'];
+    var badge = _$(badgeId); if (badge) badge.style.display = 'inline-flex';
+    var textArr = [badge, _$(textId)];
+    st[type + 'CountTimer'] = setInterval(function () {
+        var sec = Math.floor((expAt - Date.now()) / 1000);
+        if (sec <= 0) {
+            _stopCountdown(st, type);
+            if (typeof window['_' + type + 'OnExpire'] === 'function') window['_' + type + 'OnExpire']();
+            return;
+        }
+        var m = Math.floor(sec / 60), s = sec % 60;
+        var timeStr = m + ':' + (s < 10 ? '0' : '') + s;
+        textArr.forEach(function (el) { if (el && el.id === textId) el.textContent = timeStr; });
+        if (badge) badge.classList.toggle('expired', sec < 60);
+    }, 1000);
+}
+function _stopCountdown(st, type) {
+    if (st[type + 'CountTimer']) { clearInterval(st[type + 'CountTimer']); st[type + 'CountTimer'] = null; }
+}
+
 function doLogout() {
     var ov = _$('loOv');
     if (ov) ov.classList.add('show');
@@ -241,6 +293,67 @@ function _confirmLogout() {
     if (tok) google.script.run.logout(tok);
     alert2('로그아웃되었습니다.', 'success');
     setTimeout(function () { _navLogin(); }, 800);
+}
+
+/* ── 확인 팝업 (admin용) ──────────────────────────────── */
+var _cfmCallback = null;
+function _cfmOpen(title, msg, yesLabel, yesClass, callback) {
+    if (!_$('cfmTitle')) return;
+    _$('cfmTitle').textContent = title;
+    _$('cfmMsg').textContent = msg;
+    var yesBtn = _$('cfmYes');
+    if (yesBtn) {
+        yesBtn.textContent = yesLabel || '확인';
+        yesBtn.className = 'cfm-yes' + (yesClass === 'green' ? ' green' : '');
+    }
+    _cfmCallback = callback;
+    var ov = _$('cfmOv');
+    if (ov) ov.classList.add('show');
+}
+function _cfmClose() {
+    var ov = _$('cfmOv');
+    if (ov) ov.classList.remove('show');
+    _cfmCallback = null;
+}
+function _cfmExec() {
+    var cb = _cfmCallback;
+    _cfmClose();
+    if (cb) cb();
+}
+
+/* ── 비밀번호 확인 팝업 ───────────────────────────────── */
+function openPwCheck() {
+    _$('pwIn').value = '';
+    _$('pwErr').textContent = '';
+    _$('pwOk').disabled = false;
+    _$('pwOk').textContent = '확인';
+    _$('pwOverlay').classList.add('show');
+    setTimeout(function () { _$('pwIn').focus(); }, 100);
+}
+function closePwCheck() { _$('pwOverlay').classList.remove('show'); }
+function confirmPw() {
+    var pw = _$('pwIn').value;
+    if (!pw) { _$('pwErr').textContent = '비밀번호를 입력해주세요.'; return; }
+    var btn = _$('pwOk');
+    btn.disabled = true; btn.textContent = '확인 중...';
+    var tok = _getToken();
+    google.script.run
+        .withSuccessHandler(function (r) {
+            btn.disabled = false; btn.textContent = '확인';
+            if (r.success) {
+                closePwCheck();
+                _navTo('?page=profile&session=' + tok);
+            } else {
+                _$('pwErr').textContent = r.message;
+                _$('pwIn').value = '';
+                _$('pwIn').focus();
+            }
+        })
+        .withFailureHandler(function () {
+            btn.disabled = false; btn.textContent = '확인';
+            _$('pwErr').textContent = '오류가 발생했습니다.';
+        })
+        .verifyCurrentPassword(tok, pw);
 }
 
 function fmtPhone(p) {
