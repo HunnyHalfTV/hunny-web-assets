@@ -28,7 +28,9 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
     white-space: nowrap;
-    margin-left: auto;
+    margin-left: auto !important;
+    float: right;
+    /* 플렉스박스 외부에서도 작동하도록 보강 */
 }
 
 .map-btn:hover {
