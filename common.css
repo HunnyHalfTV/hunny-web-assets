@@ -1627,7 +1627,12 @@ tbody tr:last-child td {
   justify-content: center;
   gap: .3rem;
   margin-top: 1rem;
-  flex-wrap: wrap
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: .5rem;
+  -webkit-overflow-scrolling: touch
 }
 
 /* ── 주소 복사 ───────────────────────────────────────── */
