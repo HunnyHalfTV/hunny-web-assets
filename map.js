@@ -373,6 +373,10 @@ function moAutoOptimizeRoute() {
     if (typeof showCfm === 'function') { showCfm('✨ 배송 순서 자동 최적화', msg, function () { _moDrawRoute(true); }); }
     else { if (confirm(msg)) _moDrawRoute(true); }
 }
+/**
+ * _moDrawRoute — 도로 동선 API 호출 진입점
+ * 역할: 버튼 상태 설정 → 경유지 구성 → getRouteData 서버 호출
+ */
 function _moDrawRoute(optimize) {
     var btn = _$('moRouteBtn');
     btn.disabled = true; btn.textContent = '⏳ 계산 중...';
@@ -383,39 +387,7 @@ function _moDrawRoute(optimize) {
     google.script.run
         .withSuccessHandler(function (data) {
             btn.disabled = false;
-            if (!data || data.error) { alert2('API 오류: ' + (data ? data.error : '알 수 없는 오류') + '. 직선 동선으로 대체합니다.', 'error'); _moDrawStraight(); return; }
-            var routes = data.routes;
-            if (!routes || !routes[0] || routes[0].result_code !== 0) { _moDrawStraight(); return; }
-            if (data.optimizedWaypoints) {
-                var newOrder = [];
-                data.optimizedWaypoints.forEach(function (optWp) {
-                    var foundIdx = -1;
-                    for (var i = 0; i < _moOkList.length; i++) { if (_moOkList[i].lat === optWp.lat && _moOkList[i].lng === optWp.lng) { foundIdx = i; break; } }
-                    if (foundIdx !== -1) newOrder.push(foundIdx);
-                });
-                var lastIdx = -1;
-                for (var i = 0; i < _moOkList.length; i++) { if (_moOkList[i].lat === dest.lat && _moOkList[i].lng === dest.lng) { lastIdx = i; break; } }
-                if (lastIdx !== -1 && newOrder.indexOf(lastIdx) === -1) newOrder.push(lastIdx);
-                _moCustomOrder = newOrder;
-            }
-            _moRouteActive = true; btn.textContent = '✕ 동선 숨기기'; btn.className = 'mo-hbtn amber active';
-            var route = routes[0]; _moSegInfo = [];
-            var colors = ['#F59E0B', '#EF4444', '#8B5CF6', '#10B981', '#EC4899', '#F97316'];
-            if (route.sections && route.sections.length > 0) {
-                route.sections.forEach(function (sec, si) {
-                    _moSegInfo.push({ distM: sec.distance, durationSec: sec.duration });
-                    if (sec.roads) {
-                        sec.roads.forEach(function (road) {
-                            var path = []; for (var vi = 0; vi < road.vertexes.length; vi += 2) path.push(new kakao.maps.LatLng(road.vertexes[vi + 1], road.vertexes[vi]));
-                            var l = new kakao.maps.Polyline({ path: path, strokeWeight: 5, strokeColor: colors[si % colors.length], strokeOpacity: .85, strokeStyle: 'solid' }); l.setMap(_moMap); _moRoutePolylines.push(l);
-                        });
-                    }
-                });
-            } else { _moDrawStraight(); return; }
-            _moRefreshMarkerNums();
-            var km = (route.summary.distance / 1000).toFixed(1), min = Math.round((route.summary.duration || 0) / 60);
-            var ri = _$('moRouteInfo'); ri.textContent = '🏪 매장 출발 → 도로 동선 — 총 ' + km + ' km / 약 ' + min + '분 '; ri.classList.add('show');
-            _moRebuildList();
+            _moHandleRouteResult(data, btn);
         })
         .withFailureHandler(function () { btn.disabled = false; _moDrawStraight(); })
         .getRouteData({
@@ -424,6 +396,70 @@ function _moDrawRoute(optimize) {
             waypoints: wpts.map(function (p) { return { lat: p.lat, lng: p.lng, name: p.customer }; }),
             optimize: optimize || false
         });
+}
+
+/**
+ * _moHandleRouteResult — API 응답 처리
+ * 역할: 오류 검증 → 최적화 경유지 순서 반영 → 폴리라인 렌더링 위임
+ */
+function _moHandleRouteResult(data, btn) {
+    if (!data || data.error) {
+        alert2('API 오류: ' + (data ? data.error : '알 수 없는 오류') + '. 직선 동선으로 대체합니다.', 'error');
+        _moDrawStraight(); return;
+    }
+    var routes = data.routes;
+    if (!routes || !routes[0] || routes[0].result_code !== 0) { _moDrawStraight(); return; }
+    // 경유지 최적화 순서 반영
+    if (data.optimizedWaypoints) {
+        var newOrder = [];
+        data.optimizedWaypoints.forEach(function (optWp) {
+            for (var i = 0; i < _moOkList.length; i++) {
+                if (_moOkList[i].lat === optWp.lat && _moOkList[i].lng === optWp.lng) { newOrder.push(i); break; }
+            }
+        });
+        var dest = _moCustomOrder[_moCustomOrder.length - 1];
+        if (newOrder.indexOf(dest) === -1) newOrder.push(dest);
+        _moCustomOrder = newOrder;
+    }
+    _moRenderRoutePolylines(routes[0]);
+}
+
+/**
+ * _moRenderRoutePolylines — Polyline 그리기 + 요약 UI 업데이트
+ * 역할: sections 순회 → Polyline 생성/등록 → 거리/시간 요약 표시
+ */
+function _moRenderRoutePolylines(route) {
+    var colors = ['#F59E0B', '#EF4444', '#8B5CF6', '#10B981', '#EC4899', '#F97316'];
+    _moRouteActive = true;
+    var btn = _$('moRouteBtn');
+    btn.textContent = '✕ 동선 숨기기'; btn.className = 'mo-hbtn amber active';
+    _moSegInfo = [];
+    if (route.sections && route.sections.length > 0) {
+        route.sections.forEach(function (sec, si) {
+            _moSegInfo.push({ distM: sec.distance, durationSec: sec.duration });
+            if (sec.roads) {
+                sec.roads.forEach(function (road) {
+                    var path = [];
+                    for (var vi = 0; vi < road.vertexes.length; vi += 2) {
+                        path.push(new kakao.maps.LatLng(road.vertexes[vi + 1], road.vertexes[vi]));
+                    }
+                    var l = new kakao.maps.Polyline({
+                        path: path, strokeWeight: 5,
+                        strokeColor: colors[si % colors.length],
+                        strokeOpacity: .85, strokeStyle: 'solid'
+                    });
+                    l.setMap(_moMap); _moRoutePolylines.push(l);
+                });
+            }
+        });
+    } else { _moDrawStraight(); return; }
+    _moRefreshMarkerNums();
+    var km = (route.summary.distance / 1000).toFixed(1);
+    var min = Math.round((route.summary.duration || 0) / 60);
+    var ri = _$('moRouteInfo');
+    ri.textContent = '🏪 매장 출발 → 도로 동선 — 총 ' + km + ' km / 약 ' + min + '분 ';
+    ri.classList.add('show');
+    _moRebuildList();
 }
 function _moDrawStraight() {
     _moRouteActive = true;
@@ -490,7 +526,7 @@ function _moInitMap(results) {
     var oEl = document.createElement('div'); oEl.className = 'kk-marker origin-marker'; oEl.textContent = '매장';
     _moOriginMarkerOv = new kakao.maps.CustomOverlay({ position: oPos, content: oEl, yAnchor: 1, zIndex: 6 }); _moOriginMarkerOv.setMap(_moMap);
     var oInfoEl = document.createElement('div'); oInfoEl.className = 'kk-info';
-    oInfoEl.innerHTML = '<button class="kk-info-close">×</button><b style="color:#065F46">🏪 매장 (출발지)</b><br>🏠 <span style="font-size:.78rem;color:#374151">' + MO_ORIGIN.addr + '</span>';
+    oInfoEl.innerHTML = '<button class="kk-info-close">×</button><b style="color:#065F46">🏪 매장 (출발지)</b><br>🏠 <span class="kk-info-addr">' + MO_ORIGIN.addr + '</span>';
     _moOriginInfoOv = new kakao.maps.CustomOverlay({ position: oPos, content: oInfoEl, xAnchor: .5, yAnchor: 1.5, zIndex: 11 });
     oInfoEl.querySelector('.kk-info-close').addEventListener('click', function (e) { e.stopPropagation(); _moOriginInfoOv.setMap(null); if (_moOpenOv === _moOriginInfoOv) _moOpenOv = null; });
     oEl.addEventListener('click', function () {
@@ -504,7 +540,7 @@ function _moInitMap(results) {
         var mEl = document.createElement('div'); mEl.className = 'kk-marker'; mEl.textContent = String(_moCustomOrder.indexOf(i) + 1);
         var mOv = new kakao.maps.CustomOverlay({ position: pos, content: mEl, yAnchor: 1, zIndex: 5 }); mOv.setMap(_moMap); _moMarkerOvs.push(mOv);
         var iEl = document.createElement('div'); iEl.className = 'kk-info';
-        iEl.innerHTML = '<button class="kk-info-close">×</button><b>' + r.customer + '</b><br>📞 <a href="tel:' + r.phone + '" style="font-weight:600">' + r.phone + '</a><br>📦 ' + r.model + ' × ' + r.qty + '대<br>🏠 <span style="font-size:.78rem;color:#374151">' + r.addr + '</span>';
+        iEl.innerHTML = '<button class="kk-info-close">×</button><b>' + r.customer + '</b><br>📞 <a href="tel:' + r.phone + '" class="kk-info-phone">' + r.phone + '</a><br>📦 ' + r.model + ' × ' + r.qty + '대<br>🏠 <span class="kk-info-addr">' + r.addr + '</span>';
         var iOv = new kakao.maps.CustomOverlay({ position: pos, content: iEl, xAnchor: .5, yAnchor: 1.5, zIndex: 10 }); _moInfoOvs.push(iOv);
         (function (idx, ov) {
             iEl.querySelector('.kk-info-close').addEventListener('click', function (e) { e.stopPropagation(); ov.setMap(null); if (_moOpenOv === ov) _moOpenOv = null; document.querySelectorAll('.mo-addr-item').forEach(function (el) { el.classList.remove('active'); }); });

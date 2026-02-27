@@ -640,7 +640,7 @@ tbody tr:last-child td {
   border-radius: 50%;
   width: 40px;
   height: 40px;
-  animation: spin 1s linear infinite;
+  animation: spin-main 1s linear infinite;
   margin: var(--xl) auto
 }
 
@@ -648,7 +648,7 @@ tbody tr:last-child td {
   display: block
 }
 
-@keyframes spin {
+@keyframes spin-main {
   0% {
     transform: rotate(0deg)
   }
@@ -1464,28 +1464,8 @@ tbody tr:last-child td {
   padding: .75rem
 }
 
-/* ── 공통 버튼 (이중 정의 통합 해소: display/align/gap 다시 명시) ─────────── */
-.btn {
-  padding: .5rem 1rem;
-  font-size: .813rem;
-  font-weight: 500;
-  border: none;
-  border-radius: .375rem;
-  cursor: pointer;
-  transition: all .2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: .5rem;
-  white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation
-}
-
-.btn:disabled {
-  opacity: .6;
-  cursor: not-allowed
-}
+/* ── 공통 버튼 변형 (기본 .btn 정의는 L307 단일 정의로 통합, 중복 제거)
+   .btn-success / .btn-danger / .btn-gray 등 변형 클래스만 아래에 선언 ── */
 
 .btn-success {
   background: #28a745;
@@ -1630,6 +1610,24 @@ tbody tr:last-child td {
   background: var(--p);
   color: #fff;
   font-weight: 700;
+}
+
+/* ── 페이저 수식어: 이전/다음 버튼 간격 (인라인 style 대체) ── */
+.inv-pg-btn--prev {
+  margin-right: .3rem
+}
+
+.inv-pg-btn--next {
+  margin-left: .3rem
+}
+
+/* ── 페이저 컨테이너 공통 유틸 (인라인 style 대체) ── */
+.pager {
+  display: flex;
+  justify-content: center;
+  gap: .3rem;
+  margin-top: 1rem;
+  flex-wrap: wrap
 }
 
 /* ── 주소 복사 ───────────────────────────────────────── */

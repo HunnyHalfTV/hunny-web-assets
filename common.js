@@ -143,28 +143,31 @@ function _sendLargeData(data, successCb, serverFunctionName, retryCount) {
   var total = chunks.length;
   var txId = 'TX' + Date.now() + Math.floor(Math.random() * 1000);
 
-  var sendNext = function (idx) {
-    if (idx >= total) return;
+  /* [개선] 실패 시 전체 재전송 → 실패한 청크(fromIdx) 부터만 재전송 */
+  var sendFrom = function (fromIdx) {
+    if (fromIdx >= total) return;
 
     google.script.run
       .withSuccessHandler(function (res) {
         if (res && res.isComplete) {
           if (successCb) successCb(res.data);
         } else {
-          sendNext(idx + 1);
+          sendFrom(fromIdx + 1);
         }
       })
       .withFailureHandler(function (err) {
         if (retryCount < maxRetries) {
-          console.warn('전송 실패, 재시도 중... (' + (retryCount + 1) + '/' + maxRetries + ')');
-          setTimeout(function () { _sendLargeData(data, successCb, serverFunctionName, retryCount + 1); }, 1000 * Math.pow(2, retryCount));
+          console.warn('청크 #' + fromIdx + ' 전송 실패, 재시도 중... (' + (retryCount + 1) + '/' + maxRetries + ')');
+          // [개선] fromIdx부터 재시작하여 이미 완료된 청크 재전송 방지
+          retryCount++;
+          setTimeout(function () { sendFrom(fromIdx); }, 1000 * Math.pow(2, retryCount - 1));
         } else {
-          alert2('데이터 전송 실패: ' + err.message, 'error');
+          alert2('데이터 전송 실패: ' + (err && err.message ? err.message : '알 수 없는 오류'), 'error');
         }
-      })[serverFunctionName](txId, idx, total, chunks[idx]);
+      })[serverFunctionName](txId, fromIdx, total, chunks[fromIdx]);
   };
 
-  sendNext(0);
+  sendFrom(0);
 }
 
 /* ── 세션 / 웹앱 URL ─────────────────────────────────── */
@@ -175,9 +178,8 @@ var S = (typeof S !== 'undefined') ? S : { token: '', appUrl: '' };
 var _LS_SESS_KEY = '_appSess';
 
 function _getLocalSession() {
-  /* [보안] 브라우저 종료 시 로그아웃 정책 적용으로 영구 비활성화.
-     향후 정책 변경 대비 함수 형태는 유지하되 항상 null 반환.
-     이 함수를 호출하는 코드는 항상 null을 받는다고 가정하고 dead-path로 처리합니다. */
+  // [보안 정책] 브라우저 종료 시 로그아웃을 위해 localStorage 세션 복원을 영구 비활성화.
+  // 이 함수를 호출하는 코드는 항상 null을 받습니다. (Dead Path)
   return null;
 }
 
@@ -534,7 +536,8 @@ function _renderCommonPager(id, total, current, callbackName) {
   // [이전] "<<", "<" 버튼 - 첫 페이지가 아니면 노출
   if (current > 1) {
     html += '<button class="inv-pg-btn" onclick="' + callbackName + '(1)" title="첫 페이지">«</button>';
-    html += '<button class="inv-pg-btn" style="margin-right:.3rem" onclick="' + callbackName + '(' + (current - 1) + ')" title="이전 페이지">‹</button>';
+    /* [개선] 인라인 style 제거 → inv-pg-btn--prev CSS 클래스 활용 */
+    html += '<button class="inv-pg-btn inv-pg-btn--prev" onclick="' + callbackName + '(' + (current - 1) + ')" title="이전 페이지">‹</button>';
   }
 
   // [숫자] 현재 페이지 기준 최대 5개 노출
@@ -554,7 +557,8 @@ function _renderCommonPager(id, total, current, callbackName) {
 
   // [다음] ">", ">>" 버튼 - 마지막 페이지가 아니면 노출
   if (current < total) {
-    html += '<button class="inv-pg-btn" style="margin-left:.3rem" onclick="' + callbackName + '(' + (current + 1) + ')" title="다음 페이지">›</button>';
+    /* [개선] 인라인 style 제거 → inv-pg-btn--next CSS 클래스 활용 */
+    html += '<button class="inv-pg-btn inv-pg-btn--next" onclick="' + callbackName + '(' + (current + 1) + ')" title="다음 페이지">›</button>';
     html += '<button class="inv-pg-btn" onclick="' + callbackName + '(' + total + ')" title="마지막 페이지">»</button>';
   }
 

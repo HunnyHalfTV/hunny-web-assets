@@ -518,3 +518,13 @@
     width: 36px;
     height: 36px
 }
+
+/* ── 인포창 내부 유틸 클래스 (map.js 인라인 style 대체) ── */
+.kk-info-addr {
+    font-size: .78rem;
+    color: #374151
+}
+
+.kk-info-phone {
+    font-weight: 600
+}
