@@ -600,6 +600,8 @@ tbody tr:last-child td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.3;
+  padding-bottom: 3px;
 }
 
 .ni:hover {
@@ -1080,9 +1082,7 @@ tbody tr:last-child td {
   }
 }
 
-</style>
 /* --- From common_css.html --- */
-<style>
 /* ============================================================
    common_css.html — 후니네 반값티비 공통 스타일
    ============================================================ */
