@@ -37,7 +37,7 @@ function _moAddrSpan(fullAddr) {
     _addrStore.push(base);
     return '<span style="-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:pointer;display:inline-flex;align-items:center;gap:3px;" '
         + 'data-action="copy" data-idx="' + idx + '" title="탭하면 기본주소 복사">'
-        + base + _MO_COPY_SVG + '</span>';
+        + fullAddr + _MO_COPY_SVG + '</span>';
 }
 
 /* ── 지도 오버레이 — 전역 변수 ───────────────────────── */

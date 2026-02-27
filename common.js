@@ -614,6 +614,5 @@ function _addrHtml(addr) {
   var idx = _addrStore.length;
   _addrStore.push(base);
   return '<span class="addr-copy" data-action="copy" data-idx="' + idx + '" title="탭하면 기본주소 복사">'
-    + base + _ADDR_COPY_SVG + '</span>';
+    + addr + _ADDR_COPY_SVG + '</span>';
 }
-
