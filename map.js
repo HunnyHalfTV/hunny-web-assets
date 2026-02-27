@@ -276,6 +276,9 @@ function _moMakeItem(origIdx, seqNum) {
 function _moInitListEvents() {
     var scroll = _$('moAddrListScroll');
     if (!scroll) return;
+    // [최적화-9] 지도 열기/닫기 반복 시 이벤트 핸들러 누적 방지
+    if (scroll._listEventsInit) return;
+    scroll._listEventsInit = true;
     scroll.addEventListener('click', function (e) {
         var target = e.target;
         var ob = target.closest('.mo-ob');
@@ -455,7 +458,8 @@ function _moOptimize(pts) {
         return Math.pow(a.lat - b.lat, 2) + Math.pow(a.lng - b.lng, 2);
     };
     var vis = new Array(n).fill(false), ord = [], cur = 0; vis[0] = true; ord.push(0);
-    for (var ss = 1; ss < ss < n; ss++) {
+    // [버그수정-1] ss < ss < n 오타 수정 → ss < n (기존 코드는 루프가 즉시 종료되어 최적화 무동작)
+    for (var ss = 1; ss < n; ss++) {
         var best = -1, bd = Infinity;
         for (var j = 0; j < n; j++) {
             if (!vis[j]) {

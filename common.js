@@ -92,12 +92,15 @@ function alert2(msg, type) {
 /* profile.html 호환 alias */
 var showAlert = alert2;
 
-/* ── 데이터 전송 청킹 (대용량 데이터 전송용) ───────────── */
+/* ── TextEncoder / TextDecoder 모듈 레벨 캐싱 (반복 생성 비용 제거) ── */
+var _enc = (typeof TextEncoder !== 'undefined') ? new TextEncoder() : null;
+var _dec = (typeof TextDecoder !== 'undefined') ? new TextDecoder() : null;
+
 /**
  * 문자열의 바이트 길이를 계산합니다.
  */
 function _getByteLength(str) {
-  return new TextEncoder().encode(str).length;
+  return _enc ? _enc.encode(str).length : new Blob([str]).size;
 }
 
 /**
@@ -108,20 +111,19 @@ function _getByteLength(str) {
 function _splitIntoChunks(data, maxByteSize) {
   maxByteSize = maxByteSize || (50 * 1024);
   var jsonString = JSON.stringify(data);
-  var encoder = new TextEncoder();
-  var encodedData = encoder.encode(jsonString);
+  if (!_enc) return [jsonString]; // 폴백: 분할 없이 전체 반환
+  var encodedData = _enc.encode(jsonString);
   var totalBytes = encodedData.length;
 
   if (totalBytes <= maxByteSize) return [jsonString];
 
   var chunks = [];
   var currentPos = 0;
-  var decoder = new TextDecoder();
 
   while (currentPos < totalBytes) {
     var endPos = Math.min(currentPos + maxByteSize, totalBytes);
     var chunkUint8 = encodedData.slice(currentPos, endPos);
-    chunks.push(decoder.decode(chunkUint8));
+    chunks.push(_dec.decode(chunkUint8));
     currentPos = endPos;
   }
   return chunks;
@@ -173,7 +175,9 @@ var S = (typeof S !== 'undefined') ? S : { token: '', appUrl: '' };
 var _LS_SESS_KEY = '_appSess';
 
 function _getLocalSession() {
-  // [보안] 브라우저 종료 시 로그아웃 정책: Persistent Session(localStorage) 비활성화
+  /* [보안] 브라우저 종료 시 로그아웃 정책 적용으로 영구 비활성화.
+     향후 정책 변경 대비 함수 형태는 유지하되 항상 null 반환.
+     이 함수를 호출하는 코드는 항상 null을 받는다고 가정하고 dead-path로 처리합니다. */
   return null;
 }
 
@@ -333,11 +337,6 @@ function _closeLoPopup() {
 }
 function _confirmLogout() {
   _closeLoPopup();
-  // 브라우저 종료 시 로그아웃 정책을 위해 세션은 지우지만, 저장된 계정 정보는 유지
-  var savedId = localStorage.getItem('saved_user_id');
-  var pwSaved = localStorage.getItem('pw_saved');
-  var savedPw = localStorage.getItem('saved_user_pw');
-
   _clearLocalSession();
   sessionStorage.clear();
   localStorage.removeItem(_LS_SESS_KEY); // 세션 키 명시적 제거
@@ -348,10 +347,7 @@ function _confirmLogout() {
   keysToKeep.forEach(function (k) { currentData[k] = localStorage.getItem(k); });
   localStorage.clear();
   keysToKeep.forEach(function (k) { if (currentData[k]) localStorage.setItem(k, currentData[k]); });
-
-  if (savedId) localStorage.setItem('saved_user_id', savedId);
-  if (pwSaved) localStorage.setItem('pw_saved', pwSaved);
-  if (savedPw) localStorage.setItem('saved_user_pw', savedPw);
+  // [코드정리-3] 위 keysToKeep 루프에서 이미 완료된 중복 setItem 제거
 
   var tok = _getToken();
   if (tok) google.script.run.logout(tok);
