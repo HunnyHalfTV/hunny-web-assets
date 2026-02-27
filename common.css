@@ -560,9 +560,7 @@ tbody tr:last-child td {
   left: 0;
   right: 0;
   width: 100%;
-  background: rgba(var(--p-rgb), 0.07);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: #fff;
   border-top: 1px solid rgba(var(--p-rgb), 0.15);
   display: flex;
   align-items: flex-end;
@@ -753,7 +751,7 @@ tbody tr:last-child td {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, .5);
-  z-index: 1000;
+  z-index: 2500;
   padding: var(--md);
   overflow-y: auto
 }
