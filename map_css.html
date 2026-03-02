@@ -1,0 +1,522 @@
+<style>
+    /* ============================================================
+     map_css.html — 지도 및 동선 관리 스타일
+     ============================================================ */
+
+    /* ── 지도버튼 ──────────────────────────────────────── */
+    .map-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 16px;
+        font-size: .82rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #F59E0B, #D97706);
+        color: #fff;
+        border: 2px solid rgba(255, 255, 255, .35);
+        border-radius: 20px;
+        cursor: pointer;
+        margin-left: auto;
+        touch-action: manipulation;
+        transition: all .2s;
+        white-space: nowrap;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(245, 158, 11, .45), inset 0 1px 0 rgba(255, 255, 255, .25);
+        letter-spacing: .015em;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, .15)
+    }
+
+    .map-btn:hover {
+        background: linear-gradient(135deg, #FBBF24, #F59E0B);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(245, 158, 11, .5), inset 0 1px 0 rgba(255, 255, 255, .3)
+    }
+
+    .map-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 6px rgba(245, 158, 11, .35)
+    }
+
+    .map-btn:disabled {
+        opacity: .55;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+        filter: grayscale(.3);
+        background: linear-gradient(135deg, #9CA3AF, #6B7280)
+    }
+
+    /* ── 지도 오버레이 컨테이너 ─────────────────────────── */
+    #mapOv {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .55);
+        z-index: 4000;
+        flex-direction: column
+    }
+
+    #mapOv.show {
+        display: flex
+    }
+
+    #mapOvInner {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        background: #fff
+    }
+
+    /* ── 지도 헤더 ─────────────────────────────────────── */
+    .mo-hd {
+        color: #fff;
+        padding: .6rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        flex-shrink: 0;
+        min-height: 48px
+    }
+
+    .mo-hd h2 {
+        font-size: .95rem;
+        font-weight: 700;
+        white-space: nowrap
+    }
+
+    .mo-hd .sub {
+        font-size: .75rem;
+        opacity: .85
+    }
+
+    .mo-hd-btns {
+        margin-left: auto;
+        display: flex;
+        gap: .4rem;
+        align-items: center
+    }
+
+    .mo-hbtn {
+        border: 1px solid rgba(255, 255, 255, .45);
+        color: #fff;
+        padding: .3rem .7rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: .78rem;
+        font-weight: 600;
+        white-space: nowrap;
+        background: rgba(255, 255, 255, .18);
+        transition: background .15s;
+        touch-action: manipulation
+    }
+
+    .mo-hbtn:hover {
+        background: rgba(255, 255, 255, .32)
+    }
+
+    .mo-hbtn.amber {
+        background: #F59E0B;
+        border-color: #D97706
+    }
+
+    .mo-hbtn.amber:hover {
+        background: #D97706
+    }
+
+    .mo-hbtn.amber.active {
+        background: #6B7280;
+        border-color: #6B7280
+    }
+
+    .mo-hbtn:disabled {
+        opacity: .55;
+        cursor: not-allowed
+    }
+
+    /* ── 지도 레이아웃 ──────────────────────────────────── */
+    #moLayout {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+        position: relative
+    }
+
+    #moRouteInfo {
+        display: none;
+        padding: .45rem 1rem;
+        background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+        border-bottom: 2px solid #F59E0B;
+        font-size: .78rem;
+        color: #78350F;
+        font-weight: 600;
+        text-align: center;
+        flex-shrink: 0
+    }
+
+    #moRouteInfo.show {
+        display: block
+    }
+
+    #moMapArea {
+        flex-shrink: 0;
+        transition: height .28s ease;
+        position: relative
+    }
+
+    #moMap {
+        width: 100%;
+        height: 100%
+    }
+
+    .mo-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6B7280;
+        gap: 1rem
+    }
+
+    .mo-spinner {
+        border: 3px solid #E2E8F0;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        animation: spin 1s linear infinite
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg)
+        }
+    }
+
+    /* ── 지도 하단 패널 ─────────────────────────────────── */
+    #moBottomPanel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        overflow: hidden;
+        position: relative
+    }
+
+    .mo-drag-handle {
+        width: 100%;
+        padding: 7px 0 4px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: ns-resize;
+        background: #fff;
+        border-bottom: 1px solid #E2E8F0;
+        flex-shrink: 0;
+        user-select: none;
+        -webkit-user-select: none
+    }
+
+    .mo-drag-bar {
+        width: 38px;
+        height: 4px;
+        background: #CBD5E1;
+        border-radius: 2px;
+        margin-bottom: 3px
+    }
+
+    .mo-drag-hint {
+        font-size: .65rem;
+        color: #94A3B8
+    }
+
+    .mo-panel-toggle {
+        position: absolute;
+        top: -34px;
+        right: 12px;
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        font-size: .9rem;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .28);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        touch-action: manipulation
+    }
+
+    .mo-list-toolbar {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        padding: .45rem .8rem;
+        flex-shrink: 0;
+        border-bottom: 1px solid #E2E8F0;
+    }
+
+    .mo-toolbar-title {
+        font-size: .8rem;
+        font-weight: 700;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap
+    }
+
+    .mo-tbtn {
+        font-size: .73rem;
+        font-weight: 700;
+        padding: .26rem .65rem;
+        border-radius: 6px;
+        border: 1.5px solid;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all .15s;
+        touch-action: manipulation
+    }
+
+    .mo-tbtn.outline {
+        border-color: #94A3B8;
+        color: #64748B;
+        background: #fff
+    }
+
+    .mo-tbtn.outline:hover {
+        background: #F1F5F9
+    }
+
+    .mo-list-scroll {
+        overflow-y: auto;
+        flex: 1;
+        -webkit-overflow-scrolling: touch
+    }
+
+    /* ── 배송지 목록 아이템 ─────────────────────────────── */
+    .mo-addr-item {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .5rem .8rem;
+        border-bottom: 1px solid #E2E8F0;
+        font-size: .81rem;
+        transition: background .12s
+    }
+
+    .mo-addr-item.origin-item {
+        background: #F0FDF4;
+        cursor: pointer
+    }
+
+    .mo-addr-item.origin-item:hover {
+        background: #DCFCE7
+    }
+
+    .mo-addr-item.drag-over-top {
+        border-top: 2.5px solid currentColor
+    }
+
+    .mo-addr-item.drag-over-bottom {
+        border-bottom: 2.5px solid currentColor
+    }
+
+    .mo-addr-item.is-dragging {
+        opacity: .35
+    }
+
+    .mo-addr-num {
+        min-width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: .7rem;
+        flex-shrink: 0;
+        color: #fff;
+        cursor: default
+    }
+
+    .num-amber {
+        background: #F59E0B
+    }
+
+    .num-green {
+        background: #10B981
+    }
+
+    .num-red {
+        background: #F87171
+    }
+
+    .mo-item-grab {
+        font-size: 1.05rem;
+        color: #D1D5DB;
+        cursor: grab;
+        flex-shrink: 0;
+        padding: 0 1px;
+        display: none;
+        touch-action: none;
+        line-height: 1
+    }
+
+    .mo-item-grab:active {
+        cursor: grabbing;
+        color: #94A3B8
+    }
+
+    .sort-mode .mo-item-grab {
+        display: block
+    }
+
+    .mo-order-btns {
+        display: none;
+        flex-direction: column;
+        gap: 1px;
+        flex-shrink: 0
+    }
+
+    .sort-mode .mo-order-btns {
+        display: flex
+    }
+
+    .mo-ob {
+        width: 20px;
+        height: 16px;
+        border: 1px solid #E2E8F0;
+        border-radius: 3px;
+        background: #F8FAFC;
+        color: #64748B;
+        font-size: .58rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        touch-action: manipulation
+    }
+
+    .mo-ob:disabled {
+        opacity: .28;
+        cursor: not-allowed
+    }
+
+    .mo-addr-text {
+        flex: 1;
+        min-width: 0;
+        cursor: pointer
+    }
+
+    .mo-addr-text b {
+        color: #0F172A
+    }
+
+    .mo-addr-text .detail {
+        color: #64748B;
+        margin-top: .06rem;
+        font-size: .74rem;
+        white-space: normal;
+        word-break: keep-all;
+        overflow-wrap: break-word
+    }
+
+    /* ── 주소 실패 섹션 ─────────────────────────────────── */
+    .mo-fail-section {
+        background: #FEF3C7;
+        border-top: 2px solid #FDE68A
+    }
+
+    .mo-fail-header {
+        padding: .5rem .8rem;
+        font-size: .78rem;
+        font-weight: 700;
+        color: #92400E;
+        background: #FEF3C7;
+        border-bottom: 1px solid #FDE68A
+    }
+
+    .mo-fail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: .5rem;
+        padding: .4rem .8rem;
+        border-bottom: 1px solid #FDE68A;
+        font-size: .77rem;
+        color: #78350F
+    }
+
+    /* ── 카카오 커스텀 마커 / 인포 ─────────────────────── */
+    .mo-dist-badge {
+        display: inline-block;
+        color: #fff;
+        font-size: .64rem;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 9px;
+        margin-left: 3px;
+        vertical-align: middle
+    }
+
+    .kk-info {
+        background: #fff;
+        border-radius: 10px;
+        padding: 10px 13px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, .18);
+        font-size: .82rem;
+        line-height: 1.8;
+        min-width: 185px;
+        max-width: 225px;
+        border: 1px solid #E2E8F0;
+        position: relative
+    }
+
+    .kk-info-close {
+        position: absolute;
+        top: 5px;
+        right: 7px;
+        background: none;
+        border: none;
+        font-size: 1.1rem;
+        cursor: pointer;
+        color: #9CA3AF;
+        touch-action: manipulation
+    }
+
+    .kk-marker {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+        border: 2.5px solid #fff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+        cursor: pointer;
+        transition: all .18s
+    }
+
+    .kk-marker:hover {
+        transform: scale(1.15)
+    }
+
+    .kk-marker.amber {
+        background: #F59E0B !important
+    }
+
+    .kk-marker.origin-marker {
+        background: #10B981;
+        font-size: 10px;
+        width: 36px;
+        height: 36px
+    }
+</style>

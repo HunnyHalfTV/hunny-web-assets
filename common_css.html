@@ -1,0 +1,778 @@
+<style>
+  /* ============================================================
+   common_css.html — 후니네 반값티비 공통 스타일
+   ============================================================ */
+
+  /* ── 전역 CSS 변수 (profile 기준, 모든 페이지 공유) ── */
+  :root {
+    /* ★ --sh, --fs, --fx 제거: index/index3 페이지의 :root 값이 정상 적용되도록 (이전에는 common_css가 덮어써서 버그 발생) */
+    --p: #4F46E5;
+    --s: #10B981;
+    --d: #EF4444;
+    --bd: #E5E7EB;
+    --bg: #F9FAFB;
+    --sf: #FFF;
+    --t1: #111827;
+    --t2: #6B7280;
+    --fm: clamp(.875rem, 2vw, 1rem);
+    --fl: clamp(1rem, 2.5vw, 1.125rem);
+    --s1: clamp(.25rem, .8vw, .5rem);
+    --s2: clamp(.5rem, 1.2vw, .75rem);
+    --s3: clamp(.75rem, 2vw, 1rem);
+    --s4: clamp(1rem, 2.5vw, 1.5rem);
+    --s5: clamp(1.25rem, 3vw, 2rem);
+    --touch: 2.75rem;
+    --r: clamp(6px, 1.5vw, 8px);
+    --rl: clamp(12px, 3vw, 16px)
+  }
+
+  /* ── 토스트 알림 ─────────────────────────────────────── */
+  .toast-msg {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -60%) scale(.9);
+    padding: .85rem 1.75rem;
+    font-size: .95rem;
+    font-weight: 600;
+    border-radius: 12px;
+    z-index: 20000;
+    /* 최상위 보장 */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+    max-width: 85vw;
+    width: max-content;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .3s, transform .3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: pre-line;
+    line-height: 1.4;
+  }
+
+  .toast-msg.show {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1);
+  }
+
+  .toast-msg.toast-ok {
+    background: #D1FAE5;
+    color: #065F46;
+    border: 1px solid #6EE7B7
+  }
+
+  .toast-msg.toast-er {
+    background: #FEE2E2;
+    color: #991B1B;
+    border: 1px solid #FCA5A5
+  }
+
+  /* ── 로그아웃 확인 팝업 ──────────────────────────────── */
+  .lo-ov {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .5);
+    z-index: 8000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem
+  }
+
+  .lo-ov.show {
+    display: flex
+  }
+
+  .lo-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.75rem;
+    max-width: 320px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+    text-align: center
+  }
+
+  .lo-box h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: .5rem
+  }
+
+  .lo-box p {
+    font-size: .875rem;
+    color: #6B7280;
+    margin-bottom: 1.25rem;
+    line-height: 1.6
+  }
+
+  .lo-btns {
+    display: flex;
+    gap: .75rem
+  }
+
+  .lo-btns button {
+    flex: 1;
+    padding: .7rem;
+    font-size: .9rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: opacity .15s
+  }
+
+  .lo-yes {
+    background: #EF4444;
+    color: #fff
+  }
+
+  .lo-yes:hover {
+    background: #DC2626
+  }
+
+  .lo-no {
+    background: #E5E7EB;
+    color: #374151
+  }
+
+  .lo-no:hover {
+    background: #D1D5DB
+  }
+
+  /* ── 확인 팝업 (cfm / confirm) ───────────────────────── */
+  .cfm-ov {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 10001;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem
+  }
+
+  .cfm-ov.show {
+    display: flex
+  }
+
+  .cfm-box {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.75rem;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+    text-align: center
+  }
+
+  .cfm-box h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: .5rem
+  }
+
+  .cfm-box p {
+    font-size: .875rem;
+    color: #6B7280;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    white-space: pre-line
+  }
+
+  .cfm-btns {
+    display: flex;
+    gap: .75rem
+  }
+
+  .cfm-btns button {
+    flex: 1;
+    padding: .7rem;
+    font-size: .9rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: opacity .15s
+  }
+
+  .cfm-yes {
+    background: #EF4444;
+    color: #fff
+  }
+
+  .cfm-yes:hover {
+    opacity: .85
+  }
+
+  .cfm-yes.green {
+    background: #28a745
+  }
+
+  .cfm-no {
+    background: #E5E7EB;
+    color: #374151
+  }
+
+  .cfm-no:hover {
+    background: #D1D5DB
+  }
+
+  /* ── 비밀번호 확인 팝업 ──────────────────────────────── */
+  .po {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center
+  }
+
+  .po.show {
+    display: flex
+  }
+
+  .pb {
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 90%;
+    max-width: 340px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .3)
+  }
+
+  .pb h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: .25rem
+  }
+
+  .pb p {
+    font-size: .82rem;
+    color: #6B7280;
+    margin-bottom: 1.25rem
+  }
+
+  .pb input {
+    width: 100%;
+    padding: .7rem 1rem;
+    font-size: .95rem;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 8px;
+    margin-bottom: .75rem
+  }
+
+  .pb input:focus {
+    outline: none
+  }
+
+  .pe {
+    font-size: .8rem;
+    color: #EF4444;
+    min-height: 1.2rem;
+    margin-bottom: .5rem
+  }
+
+  .pbb {
+    display: flex;
+    gap: .5rem
+  }
+
+  .pbb button {
+    flex: 1;
+    padding: .65rem;
+    font-size: .9rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .2s;
+    touch-action: manipulation
+  }
+
+  .pcc {
+    background: #F3F4F6;
+    color: #374151
+  }
+
+  .pcc:hover {
+    background: #E5E7EB
+  }
+
+  .pc2:disabled {
+    opacity: .6;
+    cursor: not-allowed
+  }
+
+  /* ── 공통 오버레이 / 팝업 ────────────────────────────── */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .55);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow-y: auto
+  }
+
+  .overlay.open {
+    display: flex
+  }
+
+  .popup {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.75rem;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+    margin: auto
+  }
+
+  .popup-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem
+  }
+
+  .popup-field {
+    margin-bottom: .75rem
+  }
+
+  .popup-field label {
+    font-size: .813rem;
+    font-weight: 600;
+    display: block;
+    margin-bottom: .25rem;
+    color: #374151
+  }
+
+  .popup-input {
+    width: 100%;
+    padding: .6rem .75rem;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 6px;
+    font-size: .9rem;
+    font-family: inherit
+  }
+
+  .popup-input:focus {
+    outline: none;
+    border-color: #4F46E5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, .15)
+  }
+
+  .popup-input[readonly] {
+    background: #f3f4f6
+  }
+
+  .popup-footer {
+    display: flex;
+    gap: .75rem;
+    margin-top: 1rem
+  }
+
+  .popup-footer .btn {
+    flex: 1;
+    padding: .75rem
+  }
+
+  /* ── 공통 버튼 ───────────────────────────────────────── */
+  .btn {
+    padding: .5rem 1rem;
+    font-size: .813rem;
+    font-weight: 500;
+    border: none;
+    border-radius: .375rem;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation
+  }
+
+  .btn:disabled {
+    opacity: .6;
+    cursor: not-allowed
+  }
+
+  .btn-success {
+    background: #28a745;
+    color: white
+  }
+
+  .btn-success:hover {
+    background: #218838
+  }
+
+  .btn-danger {
+    background: #dc3545;
+    color: white
+  }
+
+  .btn-danger:hover {
+    background: #c82333
+  }
+
+  .btn-gray {
+    background: #E5E7EB;
+    color: #374151
+  }
+
+  .btn-gray:hover {
+    background: #D1D5DB
+  }
+
+  .btn-group {
+    display: flex;
+    gap: .25rem;
+    flex-wrap: nowrap
+  }
+
+  /* ── 상태/역할 뱃지 ──────────────────────────────────── */
+  .status-badge {
+    display: inline-block;
+    padding: .25rem .75rem;
+    border-radius: 1rem;
+    font-size: .813rem;
+    font-weight: 500
+  }
+
+  .status-approved {
+    background: #d4edda;
+    color: #155724
+  }
+
+  .status-pending {
+    background: #fff3cd;
+    color: #856404
+  }
+
+  .status-rejected {
+    background: #f8d7da;
+    color: #721c24
+  }
+
+  .role-badge {
+    display: inline-block;
+    padding: .2rem .6rem;
+    border-radius: 1rem;
+    font-size: .75rem;
+    font-weight: 600
+  }
+
+  .role-admin {
+    background: #FEE2E2;
+    color: #991B1B
+  }
+
+  .role-seller {
+    background: #D1FAE5;
+    color: #065F46
+  }
+
+  .role-driver {
+    background: #DBEAFE;
+    color: #1E40AF
+  }
+
+  /* profile용 badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: .2em .65em;
+    border-radius: 99px;
+    font-size: var(--fx, .75rem);
+    font-weight: 600
+  }
+
+  .b-ok {
+    background: #D1FAE5;
+    color: #065F46
+  }
+
+  .b-pend {
+    background: #EFF6FF;
+    color: #1E40AF
+  }
+
+  .b-rej {
+    background: #FEE2E2;
+    color: #991B1B
+  }
+
+  .b-adm {
+    background: #EDE9FE;
+    color: #5B21B6
+  }
+
+  .b-sell {
+    background: #FEF3C7;
+    color: #92400E
+  }
+
+  .b-drv {
+    background: #D1FAE5;
+    color: #065F46
+  }
+
+  /* ── 공통 페이징 버튼 (.inv-pg-btn) ── */
+  .inv-pg-btn {
+    min-width: 32px;
+    padding: .3rem .5rem;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+    font-weight: 400;
+    cursor: pointer;
+    font-size: .82rem;
+    transition: all .15s;
+  }
+
+  .inv-pg-btn:hover {
+    background: #F1F5F9;
+  }
+
+  .inv-pg-btn.active {
+    border-color: var(--p);
+    background: var(--p);
+    color: #fff;
+    font-weight: 700;
+  }
+
+  /* ============================================================*/
+  /* ── 기본 리셋 & body ─────────────────────────────────── */
+
+  /* ── 공통 페이지 헤더 ────────────────────────────────── */
+
+  /* ── 콘텐츠 컨테이너 ─────────────────────────────────── */
+
+  /* ── 카드 ────────────────────────────────────────────── */
+
+  /* ── 폼 그리드 ───────────────────────────────────────── */
+
+  /* ── 공통 폼 입력 ────────────────────────────────────── */
+
+  /* ── 탭 ──────────────────────────────────────────────── */
+
+  /* ── 하단 네비게이션 ─────────────────────────────────── */
+
+  /* ── 로딩 스피너 ─────────────────────────────────────── */
+
+  /* ── 빈 상태 ─────────────────────────────────────────── */
+
+  /* ── 날짜 범위 그룹 헤더 ─────────────────────────────── */
+
+  /* ── 토글 스위치 ─────────────────────────────────────── */
+
+  /* ── 날짜범위 입력 ───────────────────────────────────── */
+
+  /* ── 검색바 ──────────────────────────────────────────── */
+
+  /* ── 주문 카드 ───────────────────────────────────────── */
+
+  /* ── 테이블 래퍼 ─────────────────────────────────────── */
+
+  /* ── 날짜 표시 셀 ────────────────────────────────────── */
+
+  /* ── 자동완성 ────────────────────────────────────────── */
+
+  /* ── 체크박스 그룹 ───────────────────────────────────── */
+
+  /* ── 모달 ────────────────────────────────────────────── */
+
+  /* ── 주소 복사 ───────────────────────────────────────── */
+  .addr-copy {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px
+  }
+
+  .addr-copy-icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: 1.1em;
+    height: 1.1em;
+    flex-shrink: 0;
+    opacity: .5;
+    transition: opacity .15s, transform .15s;
+    pointer-events: none
+  }
+
+  .addr-copy:active .addr-copy-icon {
+    opacity: 1;
+    transform: scale(.9)
+  }
+
+  /* ── 테이블 공통 ─────────────────────────────────────── */
+  .table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse
+  }
+
+  .table thead {
+    background: #f9fafb
+  }
+
+  .table th {
+    padding: .75rem;
+    text-align: left;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+    font-size: .875rem
+  }
+
+  .table td {
+    padding: .75rem;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: .875rem;
+    vertical-align: middle
+  }
+
+  .table tbody tr:hover {
+    background: #f9fafb
+  }
+
+  @media(max-width:768px) {
+    .table {
+      font-size: .75rem
+    }
+
+    .table th,
+    .table td {
+      padding: .5rem .25rem
+    }
+
+    .btn {
+      padding: .375rem .625rem;
+      font-size: .75rem
+    }
+  }
+
+  /* ── 공통 빈 상태 / 로딩 ─────────────────────────────── */
+  .loading {
+    text-align: center;
+    padding: 2rem;
+    color: #666
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #666
+  }
+
+  .empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: .75rem;
+    opacity: .7
+  }
+
+  /* ── 사용자 정보 / 헤더 메뉴버튼 ────────────────────── */
+  .um {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto
+  }
+
+  .ui2 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .25rem
+  }
+
+  .un {
+    font-size: .9rem;
+    font-weight: 600
+  }
+
+  .ur {
+    font-size: .75rem;
+    opacity: .8
+  }
+
+  .mb2 {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap
+  }
+
+  .bm {
+    background: rgba(255, 255, 255, .2);
+    color: #fff;
+    border: none;
+    padding: .5rem .875rem;
+    border-radius: .375rem;
+    cursor: pointer;
+    font-size: .813rem;
+    font-weight: 500;
+    transition: all .2s;
+    white-space: nowrap;
+    touch-action: manipulation
+  }
+
+  .bm:hover {
+    background: rgba(255, 255, 255, .3);
+    transform: translateY(-1px)
+  }
+
+  .bm.adm {
+    background: rgba(231, 76, 60, .3)
+  }
+
+  .bm.adm:hover {
+    background: rgba(231, 76, 60, .5)
+  }
+
+  .bm.lo {
+    background: rgba(0, 0, 0, .2)
+  }
+
+  .bm.lo:hover {
+    background: rgba(0, 0, 0, .3)
+  }
+
+  @media(max-width:768px) {
+    .hc {
+      flex-wrap: wrap;
+      gap: 1rem
+    }
+
+    .um {
+      width: 100%;
+      justify-content: space-between
+    }
+
+    .ui2 {
+      align-items: flex-start
+    }
+
+    .mb2 {
+      flex: 1;
+      justify-content: flex-end
+    }
+
+    .bm {
+      font-size: .75rem;
+      padding: .375rem .625rem
+    }
+  }
+</style>
