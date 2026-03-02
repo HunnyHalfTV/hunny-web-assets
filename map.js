@@ -1,4 +1,3 @@
-﻿
 /* ============================================================
    map_js.html — 지도 및 동선 관리 로직
    ============================================================ */
@@ -108,7 +107,20 @@ function openMap(date, addrList) {
         .withFailureHandler(function (err) {
             _mapBusy = false;
             btns.forEach(function (b) { b.disabled = false; b.textContent = '🗺️ 지도보기'; });
-            alert2('주소 변환 실패: ' + (err.message || ''), 'error');
+            var msg = err && err.message ? err.message : '';
+            if (msg.indexOf('Authorization') !== -1 || msg.indexOf('auth') !== -1 || msg.indexOf('OAuth') !== -1) {
+                /* OAuth 재인증 필요: 사용자가 직접 클릭할 수 있는 팝업 표시 */
+                if (typeof showCfm === 'function') {
+                    showCfm('🔑 권한 재인증 필요',
+                        '서버 권한이 만료되었습니다.\n아래 확인을 누른 뒤\n앱 에디터에서 함수를 실행해 재인증하거나,\n잠시 후 다시 시도해 주세요.',
+                        function () { location.reload(); });
+                } else {
+                    alert('서버 권한이 만료되었습니다. 페이지를 새로고침해 주세요.');
+                    location.reload();
+                }
+            } else {
+                alert2('주소 변환 실패: ' + msg, 'error');
+            }
         })
         .geocodeAddresses(addrList);
 }
@@ -374,6 +386,18 @@ function moAutoOptimizeRoute() {
     else { if (confirm(msg)) _moDrawRoute(true); }
 }
 /**
+ * _moShowAuthBtn — OAuth 재인증이 필요할 때 사용자가 직접 클릭할 수 있는 버튼 표시
+ * (window.top 네비게이션은 user gesture 없이 차단되므로 버튼 클릭으로 우회)
+ */
+function _moShowAuthBtn() {
+    var ri = _$('moRouteInfo');
+    ri.innerHTML = '⚠️ 서버 인증이 필요합니다. '
+        + '<button onclick="google.script.run.withSuccessHandler(function(){location.reload();}).withFailureHandler(function(){}).getRouteData({originLat:0,originLng:0,destLat:0,destLng:0,waypoints:[],optimize:false});" '
+        + 'style="background:#F59E0B;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-weight:700;cursor:pointer;margin-left:8px;">🔑 권한 허용 후 새로고침</button>';
+    ri.classList.add('show');
+}
+
+/**
  * _moDrawRoute — 도로 동선 API 호출 진입점
  * 역할: 버튼 상태 설정 → 경유지 구성 → getRouteData 서버 호출
  */
@@ -389,7 +413,16 @@ function _moDrawRoute(optimize) {
             btn.disabled = false;
             _moHandleRouteResult(data, btn);
         })
-        .withFailureHandler(function () { btn.disabled = false; _moDrawStraight(); })
+        .withFailureHandler(function (err) {
+            btn.disabled = false;
+            /* OAuth 재인증 필요 시 → 직접 클릭 가능한 버튼으로 안내 */
+            var msg = err && err.message ? err.message : '';
+            if (msg.indexOf('Authorization') !== -1 || msg.indexOf('auth') !== -1 || msg.indexOf('OAuth') !== -1) {
+                _moShowAuthBtn();
+            } else {
+                _moDrawStraight();
+            }
+        })
         .getRouteData({
             originLat: MO_ORIGIN.lat, originLng: MO_ORIGIN.lng,
             destLat: dest.lat, destLng: dest.lng,
