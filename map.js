@@ -584,4 +584,3 @@ function _moRenderFail(list) {
     if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', _loadKakaoSdk); }
     else { _loadKakaoSdk(); }
 })();
-

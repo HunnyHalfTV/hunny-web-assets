@@ -480,6 +480,21 @@ function fmtD(d) {
   return String(d);
 }
 
+/* ── 날짜 요일 포함 표시 (YYYY-MM-DD → YYYY-MM-DD (요일)) ─ */
+function fmtDateWithDay(d) {
+  if (!d) return '-';
+  if (d === '최대한 빨리' || d === '추후 연락' || d === '날짜 없음') return d;
+  var parts = String(d).split('-');
+  if (parts.length === 3) {
+    var dt = new Date(parts[0], parseInt(parts[1], 10) - 1, parts[2]);
+    if (!isNaN(dt.getTime())) {
+      var days = ['일', '월', '화', '수', '목', '금', '토'];
+      return d + ' (' + days[dt.getDay()] + ')';
+    }
+  }
+  return String(d);
+}
+
 /* ── 날짜별 그룹핑 ────────────────────────────────────── */
 function grpByDate(orders, key) {
   var g = {};
